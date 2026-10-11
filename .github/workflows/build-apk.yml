@@ -15,41 +15,40 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Check out source
-        uses: actions/checkout@v7
+      - name: Checkout source
+        uses: actions/checkout@v5
 
       - name: Set up Java 17
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@v3
 
       - name: Install Android SDK packages
         run: |
           sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Install Gradle 8.9
+      - name: Check project files
         run: |
-          curl --fail --location --retry 3 --retry-delay 2 \
-            https://services.gradle.org/distributions/gradle-8.9-bin.zip \
-            --output "$RUNNER_TEMP/gradle-8.9-bin.zip"
-          unzip -q "$RUNNER_TEMP/gradle-8.9-bin.zip" -d "$RUNNER_TEMP"
-          echo "$RUNNER_TEMP/gradle-8.9/bin" >> "$GITHUB_PATH"
-
-      - name: Verify build tools
-        run: |
-          java -version
-          gradle --version
-          sdkmanager --list_installed
+          ls -la
+          test -f settings.gradle
+          test -f build.gradle
+          test -f app/build.gradle
 
       - name: Build debug APK
-        run: gradle --no-daemon --stacktrace assembleDebug
+        run: gradle --no-daemon --stacktrace --warning-mode all assembleDebug
 
-      - name: Upload debug APK
-        uses: actions/upload-artifact@v7
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
         with:
           name: jarvis-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
